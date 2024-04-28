@@ -25,6 +25,7 @@ fn orthographic_projection(
 ) -> (&PyArray4<u64>, &PyArray3<f64>) {
     let max_bound: u64 = 1 << precision;
     let max_bound_f64: f64 = max_bound as f64;
+    let max_bound_u = max_bound as usize;
     let rows: usize = max_bound as usize;
     let columns: usize = rows;
     let channels: usize = 3;
@@ -63,12 +64,11 @@ fn orthographic_projection(
         }
     }
     let w = filtering as u64;
-    let mut freqs = [0, 0, 0, 0, 0, 0];
     if w == 0 {
         return (img.to_pyarray(py), ocp_map.to_pyarray(py));
     }
+    let mut freqs: [u64; 6] = [0, 0, 0, 0, 0, 0];
     let w_u = w as usize;
-    let max_bound_u = max_bound as usize;
     let mut bias: f64;
     for i in w_u..(max_bound_u - w_u) {
         for j in w_u..(max_bound_u - w_u) {
