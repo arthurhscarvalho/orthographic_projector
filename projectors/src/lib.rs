@@ -88,7 +88,8 @@ fn orthographic_projection(
                 let ocp_map_slice = &ocp_map.slice(s![
                     k,
                     (i - w_u)..(i + w_u + 1),
-                    (j - w_u)..(j + w_u + 1)]);
+                    (j - w_u)..(j + w_u + 1)
+                ]);
                 let curr_depth_filtered = curr_depth_slice * ocp_map_slice;
                 let weighted_local_average =
                     (curr_depth_filtered.sum() / (ocp_map_slice.sum())) + bias * 20.0;
