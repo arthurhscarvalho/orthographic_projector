@@ -1,0 +1,16 @@
+[package]
+name = "projectors"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "projectors"
+crate-type = ["cdylib"]
+
+[dependencies]
+numpy = "0.15"
+ndarray = "0.15"
+
+[dependencies.pyo3]
+version = "0.15.1"
+features = ["extension-module"]
