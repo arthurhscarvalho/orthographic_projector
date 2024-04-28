@@ -1,8 +1,8 @@
-import projectors
-from reference import orthographic_projection
 import numpy as np
 import open3d as o3d
 import time
+import projectors
+from reference import orthographic_projection
 
 
 pc = o3d.io.read_point_cloud('/home/arthurc/romanoillamp_vox10.ply')
