@@ -17,7 +17,7 @@ fn vec_to_2d_with_floor(vec: &Vec<Vec<f64>>) -> Array2<u64> {
 
 #[pyfunction]
 fn orthographic_projection(
-    py: Python,
+    _py: Python,
     points: Vec<Vec<f64>>,
     colors: Vec<Vec<f64>>,
     precision: u64,
@@ -26,8 +26,8 @@ fn orthographic_projection(
     let max_bound: u64 = 1 << precision;
     let max_bound_f64: f64 = max_bound as f64;
     let max_bound_u = max_bound as usize;
-    let rows: usize = max_bound as usize;
-    let columns: usize = rows;
+    let rows = max_bound_u;
+    let columns = max_bound_u;
     let channels: usize = 3;
     let images: usize = 6;
     let initial_colors: u64 = 255;
@@ -35,10 +35,10 @@ fn orthographic_projection(
     let mut ocp_map = Array::zeros((images, rows, columns));
     let mut min_depth = Array::zeros((channels, rows, columns));
     let mut max_depth = Array::from_elem((channels, rows, columns), max_bound_f64);
-    let plane: [(usize, usize); 3] = [(1, 2), (0, 2), (0, 1)];
-    let total_rows = points.len() as usize;
     let points_f = vec_to_2d_with_floor(&points);
     let colors_f = vec_to_2d_with_floor(&colors);
+    let plane: [(usize, usize); 3] = [(1, 2), (0, 2), (0, 1)];
+    let total_rows = points.len() as usize;
     for i in 0..total_rows {
         if points[i][0] >= max_bound_f64
             || points[i][1] >= max_bound_f64
@@ -65,23 +65,23 @@ fn orthographic_projection(
     }
     let w = filtering as u64;
     if w == 0 {
-        return (img.to_pyarray(py), ocp_map.to_pyarray(py));
+        return (img.to_pyarray(_py), ocp_map.to_pyarray(_py));
     }
-    let mut freqs: [u64; 6] = [0, 0, 0, 0, 0, 0];
     let w_u = w as usize;
+    let mut freqs: [u64; 6] = [0, 0, 0, 0, 0, 0];
     let mut bias: f64;
     for i in w_u..(max_bound_u - w_u) {
         for j in w_u..(max_bound_u - w_u) {
             bias = 1.0;
             for k in 0usize..6usize {
-                let depth_idx: usize = (k / 2) as usize;
+                let depth_channel: usize = (k / 2) as usize;
                 let curr_depth = if bias == 1.0 {
                     &mut max_depth
                 } else {
                     &mut min_depth
                 };
                 let curr_depth_slice = &curr_depth.slice(s![
-                    depth_idx,
+                    depth_channel,
                     (i - w_u)..(i + w_u + 1),
                     (j - w_u)..(j + w_u + 1)
                 ]);
@@ -94,7 +94,7 @@ fn orthographic_projection(
                 let weighted_local_average =
                     (curr_depth_filtered.sum() / (ocp_map_slice.sum())) + bias * 20.0;
                 if ocp_map[[k, i, j]] == 1.0
-                    && curr_depth[[depth_idx, i, j]] * bias > weighted_local_average * bias
+                    && curr_depth[[depth_channel, i, j]] * bias > weighted_local_average * bias
                 {
                     ocp_map[[k, i, j]] = 0.0;
                     img.slice_mut(s![k, i, j, ..]).fill(255);
@@ -107,7 +107,7 @@ fn orthographic_projection(
     for i in 0..6 {
         println!("{} points removed from projection {}", &freqs[i], &i);
     }
-    return (img.to_pyarray(py), ocp_map.to_pyarray(py));
+    return (img.to_pyarray(_py), ocp_map.to_pyarray(_py));
 }
 
 #[pymodule]
