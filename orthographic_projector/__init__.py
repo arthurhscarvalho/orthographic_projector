@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from .orthographic_projector import generate_projections
+from .orthographic_projector import generate_projections as _internal_generate_projections
 
 
 def __preprocess_cloud(points, colors, precision):
@@ -31,7 +31,7 @@ def generate_projections(points, colors, precision, filtering, crop):
     if type(colors) != np.ndarray:
         colors = np.array(colors)
     points, colors = __preprocess_cloud(points, colors, precision)
-    img, ocp_map = orthographic_projector.generate_projections(points, colors, precision, filtering)
+    img, ocp_map = _internal_generate_projections(points, colors, precision, filtering)
     img, ocp_map = np.asarray(img), np.asarray(ocp_map)
     if crop is True:
         img_tmp = []
