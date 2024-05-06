@@ -1,28 +1,21 @@
 import cv2
 import numpy as np
+from .orthographic_projector import generate_projections
 
 
-from .orthographic_projector import *
-
-__doc__ = orthographic_projector.__doc__
-if hasattr(orthographic_projector, "__all__"):
-    __all__ = orthographic_projector.__all__
-
-
-def preprocess_cloud(cloud, precision):
-    geometry = np.asarray(cloud.points, dtype=np.float64)
-    color = np.asarray(cloud.colors, dtype=np.float64)
-    min_bound = cloud.get_min_bound()
-    max_bound = cloud.get_max_bound()
+def __preprocess_cloud(points, colors, precision):
+    min_bound = points.min(axis=0)
+    max_bound = points.max(axis=0)
     if np.any(min_bound < 0):
-        geometry -= min_bound
-        if np.any(max_bound < 1) or (geometry.max() <= 1):
-            g = geometry
-            geometry = (1 << precision) * (g - g.min()) / (g.max() - g.min())
-    return geometry, color
+        points -= min_bound
+    if np.any(max_bound < 1) or (points.max() <= 1):
+        points = (1 << precision) * (points - points.min()) / (points.max() - points.min())
+    if colors.max() <= 1 and colors.min() >= 0:
+        colors = (colors * 255).astype(np.uint8)
+    return points, colors
 
 
-def crop_img(image, ocp_map):
+def __crop_img(image, ocp_map):
     if image.dtype != np.uint8 or ocp_map.dtype != np.uint8:
         image = image.astype(np.uint8)
         ocp_map = ocp_map.astype(np.uint8)
@@ -32,10 +25,20 @@ def crop_img(image, ocp_map):
     return cropped_image, cropped_ocp_map
 
 
-def pad_img(image, ocp_map):
-    if image.dtype != np.uint8 or ocp_map.dtype != np.uint8:
-        image = image.astype(np.uint8)
-        ocp_map = ocp_map.astype(np.uint8)
-    mask = (ocp_map != 1).astype(np.uint8)
-    padded_image = cv2.inpaint(image, mask, 3, cv2.INPAINT_NS)
-    return padded_image
+def generate_projections(points, colors, precision, filtering, crop):
+    if type(points) != np.ndarray:
+        points = np.array(points)
+    if type(colors) != np.ndarray:
+        colors = np.array(colors)
+    points, colors = __preprocess_cloud(points, colors, precision)
+    img, ocp_map = orthographic_projector.generate_projections(points, colors, precision, filtering)
+    img, ocp_map = np.asarray(img), np.asarray(ocp_map)
+    if crop is True:
+        img_tmp = []
+        ocp_map_tmp = []
+        for i in range(6):
+            im, ocp = __crop_img(img[i], ocp_map[i])
+            img_tmp.append(im)
+            ocp_map_tmp.append(ocp)
+        img, ocp_map = img_tmp, ocp_map_tmp
+    return img, ocp_map
