@@ -1,9 +1,7 @@
 import numpy as np
 import open3d as o3d
 import time
-# import projectors
 # import cv2
-# from reference import orthographic_projection
 import orthographic_projector
 
 
@@ -40,15 +38,4 @@ print('Cropping...')
 im, ocp = orthographic_projector.crop_img(img[0], ocp_map[0])
 print('Padding...')
 im = orthographic_projector.pad_img(im, ocp)
-
-# save_projections(img, ocp_map, crop=True, pad=False)
-
-# print('Computing ref...')
-# s = time.time()
-# img_ref, ocp_map_ref = orthographic_projection(points, colors, precision, filtering)
-# f = time.time()
-# img_ref, ocp_map_ref = np.asarray(img_ref), np.asarray(ocp_map_ref)
-# print(f'Done. Time taken: {(f-s):.2f} s')
-
-# print('img_ref == img, ocp_map_ref == ocp_map:')
-# print(np.all(img_ref == img), np.all(ocp_map_ref == ocp_map))
+print(im[:5])
