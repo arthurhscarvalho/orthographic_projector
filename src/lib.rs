@@ -16,7 +16,7 @@ fn vec_to_2d_with_floor(vec: &Vec<Vec<f64>>) -> Array2<u64> {
 }
 
 #[pyfunction]
-fn orthographic_projection(
+fn generate_projections(
     _py: Python,
     points: Vec<Vec<f64>>,
     colors: Vec<Vec<f64>>,
@@ -63,15 +63,14 @@ fn orthographic_projection(
             }
         }
     }
-    let w = filtering as u64;
-    if w == 0 {
+    if filtering == 0 {
         return (img.to_pyarray(_py), ocp_map.to_pyarray(_py));
     }
-    let w_u = w as usize;
+    let w = filtering as usize;
     let mut freqs: [u64; 6] = [0, 0, 0, 0, 0, 0];
     let mut bias: f64;
-    for i in w_u..(max_bound_u - w_u) {
-        for j in w_u..(max_bound_u - w_u) {
+    for i in w..(max_bound_u - w) {
+        for j in w..(max_bound_u - w) {
             bias = 1.0;
             for k in 0usize..6usize {
                 let depth_channel: usize = (k / 2) as usize;
@@ -82,13 +81,13 @@ fn orthographic_projection(
                 };
                 let curr_depth_slice = &curr_depth.slice(s![
                     depth_channel,
-                    (i - w_u)..(i + w_u + 1),
-                    (j - w_u)..(j + w_u + 1)
+                    (i - w)..(i + w + 1),
+                    (j - w)..(j + w + 1)
                 ]);
                 let ocp_map_slice = &ocp_map.slice(s![
                     k,
-                    (i - w_u)..(i + w_u + 1),
-                    (j - w_u)..(j + w_u + 1)
+                    (i - w)..(i + w + 1),
+                    (j - w)..(j + w + 1)
                 ]);
                 let curr_depth_filtered = curr_depth_slice * ocp_map_slice;
                 let weighted_local_average =
@@ -111,7 +110,7 @@ fn orthographic_projection(
 }
 
 #[pymodule]
-fn projectors(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(orthographic_projection, m)?)?;
+fn orthographic_projector(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(generate_projections, m)?)?;
     Ok(())
 }
