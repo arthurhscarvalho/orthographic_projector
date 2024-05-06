@@ -16,7 +16,7 @@ fn vec_to_2d_with_floor(vec: &Vec<Vec<f64>>) -> Array2<u64> {
 }
 
 #[pyfunction]
-fn orthographic_projection(
+fn generate_projections(
     _py: Python,
     points: Vec<Vec<f64>>,
     colors: Vec<Vec<f64>>,
@@ -111,7 +111,7 @@ fn orthographic_projection(
 }
 
 #[pymodule]
-fn projectors(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(orthographic_projection, m)?)?;
+fn orthographic_projector(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(generate_projections, m)?)?;
     Ok(())
 }

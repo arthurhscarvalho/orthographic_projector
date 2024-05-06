@@ -1,2 +1,5 @@
 __pycache__
 *.png
+/target
+*.so
+*.lock
