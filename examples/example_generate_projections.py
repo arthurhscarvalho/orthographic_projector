@@ -12,18 +12,22 @@ def save_projections(projections):
         cv2.imwrite(f'projection_{i}.png', image_bgr)
 
 
-PC_PATH = '/home/arthurc/longdress_vox10_1300.ply'
+PC_PATH = '/home/arthurc/redandblack_vox10_1550.ply'
 pc = o3d.io.read_point_cloud(PC_PATH)
 points, colors = np.asarray(pc.points), np.asarray(pc.colors)
 
 precision = 10
 filtering = 2
 crop = True
+save = True
 
-print('Computing test...')
+print('Generating projections...')
 t0 = time.time()
-img, ocp_map = orthographic_projector.generate_projections(points, colors, precision, filtering, crop)
+images, ocp_maps = orthographic_projector.generate_projections(points, colors, precision, filtering)
+if crop:
+    images, ocp_maps = orthographic_projector.apply_cropping(images, ocp_maps)
 t1 = time.time()
 print(f'Done. Time taken: {(t1-t0):.2f} s')
 
-save_projections(img)
+if save:
+    save_projections(images)

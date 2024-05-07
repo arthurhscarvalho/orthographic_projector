@@ -15,4 +15,4 @@ classifier = [
 ]
 
 [project.urls]
-repository = "https://github.com/akaTsunemori/orthographic-projector"
+repository = "https://github.com/akaTsunemori/orthographic_projector"
