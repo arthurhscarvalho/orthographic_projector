@@ -93,6 +93,11 @@ These are the generated projections to be expected from the provided example.
     <img src="https://i.imgur.com/LaEhUNb.png" alt="Projection 6">
 </details>
 
+# References
+[1] D. Graziosi, O. Nakagami, S. Kuma, A. Zaghetto, T. Suzuki, and A. Tabatabai "[An overview of ongoing point cloud compression standardization activities: video-based (V-PCC) and geometry-based (G-PCC)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/56FCAF660DD44348BCB1BCA9B5EC56CF/S2048770320000128a.pdf/an-overview-of-ongoing-point-cloud-compression-standardization-activities-video-based-v-pcc-and-geometry-based-g-pcc.pdf)".
+
+[2] Osman Topçu "[3D Reconstruction Of Point Clouds Using Multi-View Orthographic Projections](https://core.ac.uk/download/pdf/52940146.pdf)".
+
 ## Contributing
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated, you can simply open an issue.
 
