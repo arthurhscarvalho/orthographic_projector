@@ -22,7 +22,11 @@ fn generate_projections(
     colors: Vec<Vec<f64>>,
     precision: u64,
     filtering: u64,
+    verbose: bool
 ) -> (&PyArray4<u64>, &PyArray3<f64>) {
+    if verbose {
+        println!("Generating projections");
+    }
     let max_bound: u64 = 1 << precision;
     let max_bound_f64: f64 = max_bound as f64;
     let max_bound_u = max_bound as usize;
@@ -103,8 +107,10 @@ fn generate_projections(
             }
         }
     }
-    for i in 0..6 {
-        println!("{} points removed from projection {}", &freqs[i], &i);
+    if verbose {
+        for i in 0..6 {
+            println!("{} points removed from projection {}", &freqs[i], &i);
+        }
     }
     return (img.to_pyarray(_py), ocp_map.to_pyarray(_py));
 }

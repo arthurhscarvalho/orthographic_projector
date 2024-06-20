@@ -37,9 +37,9 @@ def apply_cropping(images, ocp_maps):
     return images_result, ocp_maps_result
 
 
-def generate_projections(points, colors, precision, filtering, crop=False):
+def generate_projections(points, colors, precision, filtering, crop=False, verbose=True):
     points, colors = __preprocess_point_cloud(points, colors, precision)
-    images, ocp_maps = _internal_generate_projections(points, colors, precision, filtering)
+    images, ocp_maps = _internal_generate_projections(points, colors, precision, filtering, verbose)
     images, ocp_maps = np.asarray(images), np.asarray(ocp_maps)
     if crop is True:
         images, ocp_maps = apply_cropping(images, ocp_maps)

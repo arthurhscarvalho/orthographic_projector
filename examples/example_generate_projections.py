@@ -23,7 +23,6 @@ filtering = 2
 crop = True
 save = True
 
-print('Generating projections...')
 t0 = time.time()
 # The generate_projections function can be used for generating the projections
 images, ocp_maps = orthographic_projector.generate_projections(points, colors, precision, filtering)
