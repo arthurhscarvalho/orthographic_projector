@@ -102,8 +102,7 @@ These are the generated projections to be expected from the provided example.
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated, you can simply open an issue.
 
 ## License
-GNU GENERAL PUBLIC LICENSE
-Version 2, June 1991
+MIT License
 
 ---
 
