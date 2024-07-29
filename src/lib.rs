@@ -1,32 +1,48 @@
-use ndarray::prelude::*;
-use numpy::ToPyArray;
+extern crate ndarray as nd;
+extern crate num;
+extern crate numpy;
+extern crate pyo3;
+
+use nd::{s, Array, Array2};
+use num::ToPrimitive;
 use numpy::{PyArray3, PyArray4};
+use numpy::{PyReadonlyArray2, ToPyArray};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-fn vec_to_2d_with_floor(vec: &Vec<Vec<f64>>) -> Array2<u64> {
-    let nrows = vec.len();
-    let ncols = vec[0].len();
-    let flattened: Vec<u64> = vec
+fn to_ndarray<'a, T>(pyarray: &'a PyReadonlyArray2<T>) -> Array2<f64>
+where
+    T: numpy::Element + ToPrimitive,
+{
+    let v: Vec<f64> = pyarray
+        .as_array()
         .iter()
-        .flat_map(|row| row.iter().map(|&val| val.floor() as u64))
+        .cloned()
+        .map(|x| x.to_f64().unwrap())
         .collect();
-    let array = Array2::from_shape_vec((nrows, ncols), flattened).unwrap();
-    return array;
+    let shape = (pyarray.shape()[0], pyarray.shape()[1]);
+    Array2::from_shape_vec(shape, v).unwrap()
+}
+
+fn floor_array<'a>(array: &'a Array2<f64>) -> Array2<u64> {
+    let v: Vec<u64> = array.iter().cloned().map(|x| x.floor() as u64).collect();
+    let shape = (array.shape()[0], array.shape()[1]);
+    Array2::from_shape_vec(shape, v).unwrap()
 }
 
 #[pyfunction]
-fn generate_projections(
-    _py: Python,
-    points: Vec<Vec<f64>>,
-    colors: Vec<Vec<f64>>,
+fn generate_projections<'py>(
+    _py: Python<'py>,
+    points: PyReadonlyArray2<f64>,
+    colors: PyReadonlyArray2<u8>,
     precision: u64,
     filtering: u64,
-    verbose: bool
-) -> (&PyArray4<u64>, &PyArray3<f64>) {
+    verbose: bool,
+) -> (&'py PyArray4<u64>, &'py PyArray3<f64>) {
     if verbose {
         println!("Generating projections");
     }
+    let (points, colors) = (to_ndarray(&points), to_ndarray(&colors));
     let max_bound: u64 = 1 << precision;
     let max_bound_f64: f64 = max_bound as f64;
     let max_bound_u = max_bound as usize;
@@ -39,31 +55,30 @@ fn generate_projections(
     let mut ocp_map = Array::zeros((images, rows, columns));
     let mut min_depth = Array::zeros((channels, rows, columns));
     let mut max_depth = Array::from_elem((channels, rows, columns), max_bound_f64);
-    let points_f = vec_to_2d_with_floor(&points);
-    let colors_f = vec_to_2d_with_floor(&colors);
+    let (points_f, colors_f) = (floor_array(&points), floor_array(&colors));
     let plane: [(usize, usize); 3] = [(1, 2), (0, 2), (0, 1)];
-    let total_rows = points.len() as usize;
+    let total_rows = points.nrows() as usize;
     for i in 0..total_rows {
-        if points[i][0] >= max_bound_f64
-            || points[i][1] >= max_bound_f64
-            || points[i][2] >= max_bound_f64
+        if points[[i, 0]] >= max_bound_f64
+            || points[[i, 1]] >= max_bound_f64
+            || points[[i, 2]] >= max_bound_f64
         {
             continue;
         }
         for j in 0usize..3usize {
             let k1 = points_f[[i, plane[j].0]] as usize;
             let k2 = points_f[[i, plane[j].1]] as usize;
-            if points[i][j] <= max_depth[[j, k1, k2]] {
+            if points[[i, j]] <= max_depth[[j, k1, k2]] {
                 img.slice_mut(s![2 * j, k1, k2, ..])
                     .assign(&colors_f.slice(s![i, ..]));
                 ocp_map[[2 * j, k1, k2]] = 1.0;
-                max_depth[[j, k1, k2]] = points[i][j];
+                max_depth[[j, k1, k2]] = points[[i, j]];
             }
-            if points[i][j] >= min_depth[[j, k1, k2]] {
+            if points[[i, j]] >= min_depth[[j, k1, k2]] {
                 img.slice_mut(s![2 * j + 1, k1, k2, ..])
                     .assign(&colors_f.slice(s![i, ..]));
                 ocp_map[[2 * j + 1, k1, k2]] = 1.0;
-                min_depth[[j, k1, k2]] = points[i][j];
+                min_depth[[j, k1, k2]] = points[[i, j]];
             }
         }
     }
@@ -88,11 +103,8 @@ fn generate_projections(
                     (i - w)..(i + w + 1),
                     (j - w)..(j + w + 1)
                 ]);
-                let ocp_map_slice = &ocp_map.slice(s![
-                    k,
-                    (i - w)..(i + w + 1),
-                    (j - w)..(j + w + 1)
-                ]);
+                let ocp_map_slice =
+                    &ocp_map.slice(s![k, (i - w)..(i + w + 1), (j - w)..(j + w + 1)]);
                 let curr_depth_filtered = curr_depth_slice * ocp_map_slice;
                 let weighted_local_average =
                     (curr_depth_filtered.sum() / (ocp_map_slice.sum())) + bias * 20.0;
@@ -112,7 +124,7 @@ fn generate_projections(
             println!("{} points removed from projection {}", &freqs[i], &i);
         }
     }
-    return (img.to_pyarray(_py), ocp_map.to_pyarray(_py));
+    (img.to_pyarray(_py), ocp_map.to_pyarray(_py))
 }
 
 #[pymodule]
