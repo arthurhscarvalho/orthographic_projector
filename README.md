@@ -9,9 +9,9 @@
 ## Setup
 ### From PyPI
 ```bash
-pip install orthographic_projector
+pip install orthographic-projector
 # or
-python -m pip install orthographic_projector
+python -m pip install orthographic-projector
 ```
 
 ### From source
@@ -22,14 +22,9 @@ https://github.com/akaTsunemori/orthographic_projector.git
 # cd into the project folder
 cd orthographic_projector
 
-# Setup a virtual environment
-python -m venv venv
-
-# Activate the virtual environment
-source ./venv/bin/activate
-
-# Install the prerequisites
-pip install -r requirements.txt
+# Setup and activate the conda environment
+conda env create -f environment.yml
+conda activate orthographic-projector
 
 # Compile the project into a python module using maturin
 maturin develop -r
@@ -37,22 +32,22 @@ maturin develop -r
 
 ## Usage
 ```python
+import cv2
 import numpy as np
 import open3d as o3d
-import time
-import cv2
 import orthographic_projector
+import time
 
 
 def save_projections(projections):
     for i in range(len(projections)):
         image = projections[i].astype(np.uint8)
         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(f'projection_{i}.png', image_bgr)
+        cv2.imwrite(f"projection_{i}.png", image_bgr)
 
 
 # Load the point cloud through open3d
-PC_PATH = './examples/redandblack_vox10_1550.ply'
+PC_PATH = "./examples/redandblack_vox10_1550.ply"
 pc = o3d.io.read_point_cloud(PC_PATH)
 points, colors = np.asarray(pc.points), np.asarray(pc.colors)
 
@@ -62,16 +57,17 @@ filtering = 2
 crop = True
 save = True
 
-print('Generating projections...')
 t0 = time.time()
 # The generate_projections function can be used for generating the projections
-images, ocp_maps = orthographic_projector.generate_projections(points, colors, precision, filtering)
+images, ocp_maps = orthographic_projector.generate_projections(
+    points, colors, precision, filtering
+)
 # The crop parameter could optionally be passed to the generate_projections function,
 # but it can also be called after the generation process
 if crop:
     images, ocp_maps = orthographic_projector.apply_cropping(images, ocp_maps)
 t1 = time.time()
-print(f'Done. Time taken: {(t1-t0):.2f} s')
+print(f"Done. Time taken: {(t1-t0):.2f} s")
 
 # The save_projections function is just an example intended for visualization of the results
 if save:
@@ -94,9 +90,15 @@ These are the generated projections to be expected from the provided example.
 </details>
 
 ## References
-[1] D. Graziosi, O. Nakagami, S. Kuma, A. Zaghetto, T. Suzuki, and A. Tabatabai "[An overview of ongoing point cloud compression standardization activities: video-based (V-PCC) and geometry-based (G-PCC)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/56FCAF660DD44348BCB1BCA9B5EC56CF/S2048770320000128a.pdf/an-overview-of-ongoing-point-cloud-compression-standardization-activities-video-based-v-pcc-and-geometry-based-g-pcc.pdf)".
+- Orthographic projector
 
-[2] Osman Topçu "[3D Reconstruction Of Point Clouds Using Multi-View Orthographic Projections](https://core.ac.uk/download/pdf/52940146.pdf)".
+    [1] D. Graziosi, O. Nakagami, S. Kuma, A. Zaghetto, T. Suzuki, and A. Tabatabai "[An overview of ongoing point cloud compression standardization activities: video-based (V-PCC) and geometry-based (G-PCC)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/56FCAF660DD44348BCB1BCA9B5EC56CF/S2048770320000128a.pdf/an-overview-of-ongoing-point-cloud-compression-standardization-activities-video-based-v-pcc-and-geometry-based-g-pcc.pdf)".
+
+    [2] Osman Topçu "[3D Reconstruction Of Point Clouds Using Multi-View Orthographic Projections](https://core.ac.uk/download/pdf/52940146.pdf)".
+
+- Source for the example point cloud
+
+    [3] E. Alexiou, I. Viola, T. M. Borges, T. A. Fonseca, R. L. De Queiroz, and T. Ebrahimi, “A comprehensive study of the rate-distortion performance in mpeg point cloud compression,” APSIPA Transactions on Signal and Information Processing, vol. 8, 2019
 
 ## Contributing
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated, you can simply open an issue.
