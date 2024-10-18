@@ -8,19 +8,12 @@ from .orthographic_projector import (
 
 def __find_scaling_factor(points):
     columns = np.sort(points, axis=0)
-    min_distance = float("inf")
-    for i in range(1, points.shape[0]):
-        prev_elements = [columns[i - 1][0], columns[i - 1][1], columns[i - 1][2]]
-        curr_elements = [columns[i][0], columns[i][1], columns[i][2]]
-        differences = [
-            abs(prev_elements[0] - curr_elements[0]),
-            abs(prev_elements[1] - curr_elements[1]),
-            abs(prev_elements[2] - curr_elements[2]),
-        ]
-        differences = [i for i in differences if i != 0]
-        if differences:
-            min_distance = min(min_distance, min(differences))
-    return np.rint(1 / (min_distance + np.finfo(np.double).eps))
+    diffs = np.diff(columns, axis=0)
+    diffs = diffs.flatten()
+    non_zero_diffs = diffs[diffs != 0]
+    min_distance = np.min(non_zero_diffs)
+    scaling_factor = np.rint(1 / (min_distance + np.finfo(np.double).eps))
+    return scaling_factor
 
 
 def __preprocess_point_cloud(points, colors, precision, verbose):
@@ -30,28 +23,33 @@ def __preprocess_point_cloud(points, colors, precision, verbose):
         colors = np.array(colors, dtype=np.double)
     if points.shape != colors.shape:
         raise Exception("Points and colors must have the same shape.")
-    min_coord = points.min()
-    if min_coord < 0:
-        points -= min_coord
+    # Apply displacement on PCs with negative coordinates
+    min_bound = points.min(axis=0)
+    if np.any(min_bound < 0):
+        points -= min_bound
         if verbose:
             print("Found negative points on PC. Displacement applied.")
+    # Normalize the PC into the interval [0, 1]
     max_coord = points.max()
-    if max_coord <= 1:
-        scaling_factor = __find_scaling_factor(points)
-        points *= scaling_factor
-        max_coord = points.max()
-        if verbose:
-            print(f"PC denormalized using a scaling factor of {scaling_factor}.")
+    points /= max_coord
+    # Rescale PCs to ideal point distances
+    scaling_factor = __find_scaling_factor(points)
+    points *= scaling_factor
+    max_coord = points.max()
+    if verbose:
+        print(f"PC denormalized using a scaling factor of {scaling_factor}.")
+    # Subsample PCs that would not fit into the projections
     scale = 2**precision
     if scale < max_coord:
         points /= max_coord
         points *= scale
         if verbose:
-            print(f"PC reescaled to fit projection size of {scale}x{scale}.")
+            print(f"PC subsampled to fit projection size of {scale}x{scale}.")
+    # Denormalize the colors to [0, 255] if necessary
     if colors.max() <= 1 and colors.min() >= 0:
         colors = colors * 255
         if verbose:
-            print("PC colors normalized to the [0, 255] interval.")
+            print("PC colors denormalized to the [0, 255] interval.")
     colors = colors.astype(np.uint8)
     return points, colors
 
