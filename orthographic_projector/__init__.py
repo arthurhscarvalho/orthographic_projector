@@ -6,13 +6,23 @@ from .orthographic_projector import (
 )
 
 
+def __duplicate_merging(points, colors):
+    unique_points, inverse_idx = np.unique(points, return_inverse=True, axis=0)
+    colors_sum = np.zeros_like(unique_points)
+    np.add.at(colors_sum, inverse_idx, colors)
+    counts = np.bincount(inverse_idx, minlength=colors_sum.shape[0])
+    mean_colors = (colors_sum.T / counts).T
+    mean_colors = np.rint(mean_colors).astype(np.uint)
+    return unique_points, mean_colors
+
+
 def __find_scaling_factor(points):
     columns = np.sort(points, axis=0)
     diffs = np.diff(columns, axis=0)
     diffs = diffs.flatten()
     non_zero_diffs = diffs[diffs != 0]
     min_distance = np.min(non_zero_diffs)
-    scaling_factor = np.rint(1 / (min_distance + np.finfo(np.double).eps))
+    scaling_factor = np.floor(1 / (min_distance + np.finfo(np.double).eps))
     return scaling_factor
 
 
@@ -50,6 +60,8 @@ def __preprocess_point_cloud(points, colors, precision, verbose):
         colors = colors * 255
         if verbose:
             print("PC colors denormalized to the [0, 255] interval.")
+    # Average duplicate points
+    points, colors = __duplicate_merging(points, colors)
     colors = colors.astype(np.uint8)
     return points, colors
 
