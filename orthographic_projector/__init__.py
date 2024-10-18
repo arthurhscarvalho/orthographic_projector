@@ -6,23 +6,52 @@ from .orthographic_projector import (
 )
 
 
-def __preprocess_point_cloud(points, colors, precision):
+def __find_scaling_factor(points):
+    columns = np.sort(points, axis=0)
+    min_distance = float("inf")
+    for i in range(1, points.shape[0]):
+        prev_elements = [columns[i - 1][0], columns[i - 1][1], columns[i - 1][2]]
+        curr_elements = [columns[i][0], columns[i][1], columns[i][2]]
+        differences = [
+            abs(prev_elements[0] - curr_elements[0]),
+            abs(prev_elements[1] - curr_elements[1]),
+            abs(prev_elements[2] - curr_elements[2]),
+        ]
+        differences = [i for i in differences if i != 0]
+        if differences:
+            min_distance = min(min_distance, min(differences))
+    return np.rint(1 / (min_distance + np.finfo(np.double).eps))
+
+
+def __preprocess_point_cloud(points, colors, precision, verbose):
     if type(points) is not np.ndarray or points.dtype is not np.double:
         points = np.array(points, dtype=np.double)
     if type(colors) is not np.ndarray or colors.dtype is not np.double:
         colors = np.array(colors, dtype=np.double)
     if points.shape != colors.shape:
         raise Exception("Points and colors must have the same shape.")
-    min_bound = points.min(axis=0)
-    max_bound = points.max(axis=0)
-    if np.any(min_bound < 0):
-        points -= min_bound
-    if np.any(max_bound < 1) or (points.max() <= 1):
-        points = (
-            (1 << precision) * (points - points.min()) / (points.max() - points.min())
-        )
+    min_coord = points.min()
+    if min_coord < 0:
+        points -= min_coord
+        if verbose:
+            print("Found negative points on PC. Displacement applied.")
+    max_coord = points.max()
+    if max_coord <= 1:
+        scaling_factor = __find_scaling_factor(points)
+        points *= scaling_factor
+        max_coord = points.max()
+        if verbose:
+            print(f"PC denormalized using a scaling factor of {scaling_factor}.")
+    scale = 2**precision
+    if scale < max_coord:
+        points /= max_coord
+        points *= scale
+        if verbose:
+            print(f"PC reescaled to fit projection size of {scale}x{scale}.")
     if colors.max() <= 1 and colors.min() >= 0:
         colors = colors * 255
+        if verbose:
+            print("PC colors normalized to the [0, 255] interval.")
     colors = colors.astype(np.uint8)
     return points, colors
 
@@ -41,6 +70,38 @@ def apply_cropping(images, ocp_maps):
         images_result.append(cropped_image)
         ocp_maps_result.append(cropped_ocp_map)
     return images_result, ocp_maps_result
+
+
+def apply_padding(images, ocp_maps, precision):
+    images_result = []
+    for i in range(len(images)):
+        image, ocp_map = images[i], ocp_maps[i]
+        image = image.astype(np.uint8)
+        ocp_map = ocp_map.astype(np.uint8)
+        # Create a border to prevent the closing operation touching the borders of the image
+        border_size = 3 * precision
+        border_sizes = (border_size, border_size, border_size, border_size)
+        color = (255, 255, 255)
+        border_type = cv2.BORDER_CONSTANT
+        image = cv2.copyMakeBorder(image, *border_sizes, border_type, value=color)
+        ocp_map = cv2.copyMakeBorder(ocp_map, *border_sizes, border_type, value=0)
+        # Apply a closing operation and setup the inpainting mask
+        kernel = np.ones((precision, precision), np.uint8)
+        closed_ocp_map = cv2.morphologyEx(ocp_map, cv2.MORPH_CLOSE, kernel)
+        not_mask = ((~(closed_ocp_map * 255)) / 255).astype(np.uint8)
+        selected_object = cv2.bitwise_or(not_mask, ocp_map)
+        mask = (selected_object != 1).astype(np.uint8)
+        # [TEMPORARY] Save the inpainting masks
+        image_bgr = cv2.cvtColor(selected_object * 255, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(f"map_{i}.png", image_bgr)
+        # Apply the inpainting
+        padded_image = cv2.inpaint(image, mask, 3, cv2.INPAINT_NS)
+        # Crop the created borders of the image
+        top, bottom, left, right = border_sizes
+        image_cropped = padded_image[top:-bottom, left:-right]
+        # Store the final result
+        images_result.append(image_cropped)
+    return images_result
 
 
 def generate_projections(
@@ -89,7 +150,7 @@ def generate_projections(
 
     Point clouds without colors currently are not supported.
     """
-    points, colors = __preprocess_point_cloud(points, colors, precision)
+    points, colors = __preprocess_point_cloud(points, colors, precision, verbose)
     images, ocp_maps = _internal_generate_projections(
         points, colors, precision, filtering, verbose
     )
