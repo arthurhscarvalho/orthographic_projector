@@ -6,16 +6,6 @@ from .orthographic_projector import (
 )
 
 
-def __duplicate_merging(points, colors):
-    unique_points, inverse_idx = np.unique(points, return_inverse=True, axis=0)
-    colors_sum = np.zeros_like(unique_points)
-    np.add.at(colors_sum, inverse_idx, colors)
-    counts = np.bincount(inverse_idx, minlength=colors_sum.shape[0])
-    mean_colors = (colors_sum.T / counts).T
-    mean_colors = np.rint(mean_colors).astype(np.uint)
-    return unique_points, mean_colors
-
-
 def __find_scaling_factor(points):
     columns = np.sort(points, axis=0)
     diffs = np.diff(columns, axis=0)
@@ -32,36 +22,33 @@ def __preprocess_point_cloud(points, colors, precision, verbose):
     if type(colors) is not np.ndarray or colors.dtype is not np.double:
         colors = np.array(colors, dtype=np.double)
     if points.shape != colors.shape:
-        raise Exception("Points and colors must have the same shape.")
+        raise Exception("Points and colors must have the same shape")
     # Apply displacement on PCs with negative coordinates
     min_bound = points.min(axis=0)
     if np.any(min_bound < 0):
         points -= min_bound
         if verbose:
-            print("Found negative points on PC. Displacement applied.")
-    # Normalize the PC into the interval [0, 1]
+            print("Found negative points on PC. Displacement applied")
+    # Scale the PC using the scaling factor
     max_coord = points.max()
     points /= max_coord
-    # Rescale PCs to ideal point distances
     scaling_factor = __find_scaling_factor(points)
     points *= scaling_factor
     max_coord = points.max()
     if verbose:
-        print(f"PC denormalized using a scaling factor of {scaling_factor}.")
+        print(f"PC denormalized using a scaling factor of {scaling_factor}")
     # Subsample PCs that would not fit into the projections
     scale = 2**precision
     if scale < max_coord:
         points /= max_coord
         points *= scale
         if verbose:
-            print(f"PC subsampled to fit projection size of {scale}x{scale}.")
+            print(f"PC subsampled to fit projection size of {scale}x{scale}")
     # Denormalize the colors to [0, 255] if necessary
     if colors.max() <= 1 and colors.min() >= 0:
         colors = colors * 255
         if verbose:
-            print("PC colors denormalized to the [0, 255] interval.")
-    # Average duplicate points
-    points, colors = __duplicate_merging(points, colors)
+            print("PC colors denormalized to the [0, 255] interval")
     colors = colors.astype(np.uint8)
     return points, colors
 
@@ -114,6 +101,14 @@ def apply_padding(images, ocp_maps, precision):
     return images_result
 
 
+def compute_projections(points, colors, precision, filtering, verbose):
+    images, ocp_maps = _internal_generate_projections(
+        points, colors, precision, filtering, verbose
+    )
+    images, ocp_maps = np.asarray(images), np.asarray(ocp_maps)
+    return images, ocp_maps
+
+
 def generate_projections(
     points, colors, precision, filtering=2, crop=False, verbose=True
 ):
@@ -139,10 +134,10 @@ def generate_projections(
     Returns
     -------
     projections : (P, N, M, C) np.ndarray
-        A set of six RGB images corresponding to the projections generated
+        A list of six RGB images corresponding to the projections generated
         from the point cloud.
     occupancy_maps : (P, N, M) np.ndarray
-        A set of binary images corresponding to the occupancy maps
+        A list of binary images corresponding to the occupancy maps
         from the generated projections.
 
     Notes
@@ -161,10 +156,13 @@ def generate_projections(
     Point clouds without colors currently are not supported.
     """
     points, colors = __preprocess_point_cloud(points, colors, precision, verbose)
-    images, ocp_maps = _internal_generate_projections(
-        points, colors, precision, filtering, verbose
+    images, ocp_maps = compute_projections(
+        points,
+        colors,
+        precision,
+        filtering,
+        verbose,
     )
-    images, ocp_maps = np.asarray(images), np.asarray(ocp_maps)
     if crop is True:
         images, ocp_maps = apply_cropping(images, ocp_maps)
     return images, ocp_maps
