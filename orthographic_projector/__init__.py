@@ -6,23 +6,49 @@ from .orthographic_projector import (
 )
 
 
-def __preprocess_point_cloud(points, colors, precision):
+def __find_scaling_factor(points):
+    columns = np.sort(points, axis=0)
+    diffs = np.diff(columns, axis=0)
+    diffs = diffs.flatten()
+    non_zero_diffs = diffs[diffs != 0]
+    min_distance = np.min(non_zero_diffs)
+    scaling_factor = np.floor(1 / (min_distance + np.finfo(np.double).eps))
+    return scaling_factor
+
+
+def __preprocess_point_cloud(points, colors, precision, verbose):
     if type(points) is not np.ndarray or points.dtype is not np.double:
         points = np.array(points, dtype=np.double)
     if type(colors) is not np.ndarray or colors.dtype is not np.double:
         colors = np.array(colors, dtype=np.double)
     if points.shape != colors.shape:
-        raise Exception("Points and colors must have the same shape.")
+        raise Exception("Points and colors must have the same shape")
+    # Apply displacement on PCs with negative coordinates
     min_bound = points.min(axis=0)
-    max_bound = points.max(axis=0)
     if np.any(min_bound < 0):
         points -= min_bound
-    if np.any(max_bound < 1) or (points.max() <= 1):
-        points = (
-            (1 << precision) * (points - points.min()) / (points.max() - points.min())
-        )
+        if verbose:
+            print("Found negative points on PC. Displacement applied")
+    # Scale the PC using the scaling factor
+    max_coord = points.max()
+    points /= max_coord
+    scaling_factor = __find_scaling_factor(points)
+    points *= scaling_factor
+    max_coord = points.max()
+    if verbose:
+        print(f"PC denormalized using a scaling factor of {scaling_factor}")
+    # Subsample PCs that would not fit into the projections
+    scale = 2**precision
+    if scale < max_coord:
+        points /= max_coord
+        points *= scale
+        if verbose:
+            print(f"PC subsampled to fit projection size of {scale}x{scale}")
+    # Denormalize the colors to [0, 255] if necessary
     if colors.max() <= 1 and colors.min() >= 0:
         colors = colors * 255
+        if verbose:
+            print("PC colors denormalized to the [0, 255] interval")
     colors = colors.astype(np.uint8)
     return points, colors
 
@@ -41,6 +67,14 @@ def apply_cropping(images, ocp_maps):
         images_result.append(cropped_image)
         ocp_maps_result.append(cropped_ocp_map)
     return images_result, ocp_maps_result
+
+
+def compute_projections(points, colors, precision, filtering, verbose):
+    images, ocp_maps = _internal_generate_projections(
+        points, colors, precision, filtering, verbose
+    )
+    images, ocp_maps = np.asarray(images), np.asarray(ocp_maps)
+    return images, ocp_maps
 
 
 def generate_projections(
@@ -68,10 +102,10 @@ def generate_projections(
     Returns
     -------
     projections : (P, N, M, C) np.ndarray
-        A set of six RGB images corresponding to the projections generated
+        A list of six RGB images corresponding to the projections generated
         from the point cloud.
     occupancy_maps : (P, N, M) np.ndarray
-        A set of binary images corresponding to the occupancy maps
+        A list of binary images corresponding to the occupancy maps
         from the generated projections.
 
     Notes
@@ -89,11 +123,14 @@ def generate_projections(
 
     Point clouds without colors currently are not supported.
     """
-    points, colors = __preprocess_point_cloud(points, colors, precision)
-    images, ocp_maps = _internal_generate_projections(
-        points, colors, precision, filtering, verbose
+    points, colors = __preprocess_point_cloud(points, colors, precision, verbose)
+    images, ocp_maps = compute_projections(
+        points,
+        colors,
+        precision,
+        filtering,
+        verbose,
     )
-    images, ocp_maps = np.asarray(images), np.asarray(ocp_maps)
     if crop is True:
         images, ocp_maps = apply_cropping(images, ocp_maps)
     return images, ocp_maps

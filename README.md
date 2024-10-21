@@ -92,9 +92,7 @@ These are the generated projections to be expected from the provided example.
 ## References
 - Orthographic projector
 
-    [1] D. Graziosi, O. Nakagami, S. Kuma, A. Zaghetto, T. Suzuki, and A. Tabatabai "[An overview of ongoing point cloud compression standardization activities: video-based (V-PCC) and geometry-based (G-PCC)](https://www.cambridge.org/core/services/aop-cambridge-core/content/view/56FCAF660DD44348BCB1BCA9B5EC56CF/S2048770320000128a.pdf/an-overview-of-ongoing-point-cloud-compression-standardization-activities-video-based-v-pcc-and-geometry-based-g-pcc.pdf)".
-
-    [2] Osman Topçu "[3D Reconstruction Of Point Clouds Using Multi-View Orthographic Projections](https://core.ac.uk/download/pdf/52940146.pdf)".
+    [1] A. Javaheri, C. Brites, F. Pereira, and J. Ascenso, “Joint geometry and color projection-based point cloud quality metric,” IEEE Access, vol. 10, pp. 90 481–90 497, 2022.
 
 - Source for the example point cloud
 
