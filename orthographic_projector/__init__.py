@@ -69,38 +69,6 @@ def apply_cropping(images, ocp_maps):
     return images_result, ocp_maps_result
 
 
-def apply_padding(images, ocp_maps, precision):
-    images_result = []
-    for i in range(len(images)):
-        image, ocp_map = images[i], ocp_maps[i]
-        image = image.astype(np.uint8)
-        ocp_map = ocp_map.astype(np.uint8)
-        # Create a border to prevent the closing operation touching the borders of the image
-        border_size = 3 * precision
-        border_sizes = (border_size, border_size, border_size, border_size)
-        color = (255, 255, 255)
-        border_type = cv2.BORDER_CONSTANT
-        image = cv2.copyMakeBorder(image, *border_sizes, border_type, value=color)
-        ocp_map = cv2.copyMakeBorder(ocp_map, *border_sizes, border_type, value=0)
-        # Apply a closing operation and setup the inpainting mask
-        kernel = np.ones((precision, precision), np.uint8)
-        closed_ocp_map = cv2.morphologyEx(ocp_map, cv2.MORPH_CLOSE, kernel)
-        not_mask = ((~(closed_ocp_map * 255)) / 255).astype(np.uint8)
-        selected_object = cv2.bitwise_or(not_mask, ocp_map)
-        mask = (selected_object != 1).astype(np.uint8)
-        # [TEMPORARY] Save the inpainting masks
-        image_bgr = cv2.cvtColor(selected_object * 255, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(f"map_{i}.png", image_bgr)
-        # Apply the inpainting
-        padded_image = cv2.inpaint(image, mask, 3, cv2.INPAINT_NS)
-        # Crop the created borders of the image
-        top, bottom, left, right = border_sizes
-        image_cropped = padded_image[top:-bottom, left:-right]
-        # Store the final result
-        images_result.append(image_cropped)
-    return images_result
-
-
 def compute_projections(points, colors, precision, filtering, verbose):
     images, ocp_maps = _internal_generate_projections(
         points, colors, precision, filtering, verbose
