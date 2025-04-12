@@ -3,8 +3,7 @@ extern crate num;
 extern crate numpy;
 extern crate pyo3;
 
-use numpy::PyReadonlyArray2;
-use numpy::{PyArray3, PyArray4};
+use numpy::{PyArray3, PyArray4, PyReadonlyArray2};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
