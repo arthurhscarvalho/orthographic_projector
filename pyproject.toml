@@ -4,12 +4,12 @@ build-backend = "maturin"
 
 [project]
 name = "orthographic_projector"
+version = "0.2.1"
 description = "Generate orthographic projections from a Point Cloud."
 readme = "README.md"
-requires-python = "==3.10"
-dependencies = ["numpy>=1.26", "opencv-python>=4.9", "toml==0.10.0"]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "opencv-python>=4.9", "toml>=0.10.0"]
 classifier = [
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python",
     "Programming Language :: Rust",
 ]

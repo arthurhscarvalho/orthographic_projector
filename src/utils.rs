@@ -1,17 +1,16 @@
 use nd::Array2;
 use num::ToPrimitive;
-use numpy::PyReadonlyArray2;
+use numpy::{PyReadonlyArray2, PyUntypedArrayMethods};
 
-pub fn to_ndarray<'a, T>(pyarray: &'a PyReadonlyArray2<T>) -> Array2<f64>
+pub fn to_ndarray<T>(pyarray: &PyReadonlyArray2<T>) -> Array2<f64>
 where
     T: numpy::Element + ToPrimitive,
 {
+    let shape = pyarray.shape();
     let v: Vec<f64> = pyarray
         .as_array()
         .iter()
-        .cloned()
-        .map(|x| x.to_f64().unwrap())
+        .filter_map(|x| x.to_f64())
         .collect();
-    let shape = (pyarray.shape()[0], pyarray.shape()[1]);
-    Array2::from_shape_vec(shape, v).unwrap()
+    Array2::from_shape_vec((shape[0], shape[1]), v).unwrap()
 }
