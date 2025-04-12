@@ -8,9 +8,9 @@ name = "orthographic_projector"
 crate-type = ["cdylib"]
 
 [dependencies]
-ndarray = "0.15.6"
-num = "0.4.3"
 numpy = "0.24.0"
+ndarray = "0.16"
+num = "0.4.3"
 
 [dependencies.pyo3]
 version = "0.24.1"
