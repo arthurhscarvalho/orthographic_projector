@@ -1,6 +1,6 @@
 [package]
 name = "orthographic_projector"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 [lib]
@@ -8,10 +8,10 @@ name = "orthographic_projector"
 crate-type = ["cdylib"]
 
 [dependencies]
-numpy = "0.15"
+numpy = "0.24.0"
 ndarray = "0.15"
 num = "0.4.3"
 
 [dependencies.pyo3]
-version = "0.15.1"
+version = "0.24.1"
 features = ["extension-module"]
