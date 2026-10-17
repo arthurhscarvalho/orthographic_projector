@@ -3,5 +3,9 @@ __pycache__
 /target
 *.so
 *.lock
+!uv.lock
 venv
 .env
+.venv/
+dist/
+*.whl
